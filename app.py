@@ -1,15 +1,22 @@
 import streamlit as st
-from PIL import Image
+import requests
+import base64
 
-def main():
-    st.title("Image Upload App")
+API_URL = "http://127.0.0.1:5000/extract-text"
+
+st.title("Google Vision Text Extraction")
+
+uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
+
+if uploaded_file is not None:
+    image_bytes = uploaded_file.read()
+    encoded_image = base64.b64encode(image_bytes).decode("utf-8")
     
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-    
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-        st.success("Image uploaded successfully!")
-    
-if __name__ == "__main__":
-    main()
+    if st.button("Extract Text"):
+        response = requests.post(API_URL, json={"encoded_image": encoded_image})
+        
+        if response.status_code == 200:
+            ndc_code = response.json().get("ndc_code", "No text found.")
+            st.text_area("Extracted Text:", ndc_code, height=200)
+        else:
+            st.error(f"Error: {response.json().get('error', 'Unknown error')}")
